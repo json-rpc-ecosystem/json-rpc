@@ -1,0 +1,10 @@
+package rpc
+
+{{range .Services}}
+// {{.Name}} {{.Description}}
+type {{.Name}} interface {
+    {{range .Methods}}
+    func {{.Name}}() error
+    {{end}}
+}
+{{end}}

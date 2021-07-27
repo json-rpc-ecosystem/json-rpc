@@ -1,0 +1,34 @@
+version = "2.0"
+endpoint = "/rpc"
+
+service "Arith" {
+    description = "exposes basic arithmatic functions"
+
+    method "Add" {
+        description = "adds all the numbers together"
+        params = { nums: "[]Number" }
+        result = { sum: "Number" }
+    }
+
+    method "Exp" {
+        description = "raises the base number to the exp number"
+        params = { base: "Number", exp: "Number" }
+        result = { num: "Number" }
+    }
+
+    method "IsNegative" {
+        description = "checks if the number is negative or not"
+        params = { num: "Number" }
+        result = { negative: "Boolean" }
+    }
+}
+
+service "Greeter" {
+    description = "does lots of greetings"
+    
+    method "SayHello" {
+        description = "composes a message with the from and to parties"
+        params = { from: "String", to: "String" }
+        result = { message: "String" }
+    }
+}

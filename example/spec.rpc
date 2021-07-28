@@ -6,20 +6,20 @@ service "Arith" {
 
     method "Add" {
         description = "adds all the numbers together"
-        params = { nums: "[]Number" }
-        result = { sum: "Number" }
+        params = { Nums: "[]Number" }
+        result = { Sum: "Number" }
     }
 
-    method "Exp" {
-        description = "raises the base number to the exp number"
-        params = { base: "Number", exp: "Number" }
-        result = { num: "Number" }
+    method "Pow" {
+        description = "raises the base number to the pow number"
+        params = { Base: "Number", Pow: "Number" }
+        result = { Num: "Number" }
     }
 
     method "IsNegative" {
         description = "checks if the number is negative or not"
-        params = { num: "Number" }
-        result = { negative: "Boolean" }
+        params = { Num: "Number" }
+        result = { Negative: "Boolean" }
     }
 }
 
@@ -28,7 +28,7 @@ service "Greeter" {
     
     method "SayHello" {
         description = "composes a message with the from and to parties"
-        params = { from: "String", to: "String" }
-        result = { message: "String" }
+        params = { From: "String", To: "String" }
+        result = { Message: "String" }
     }
 }

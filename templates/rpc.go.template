@@ -1,10 +1,111 @@
 package rpc
 
+import (
+	"encoding/json"
+	"log"
+	"net/http"
+    "strings"
+)
+
+type jsonRPCRequest struct {
+	JSONRPC string          `json:"jsonrpc"`
+	Method  string          `json:"method"`
+	Params  json.RawMessage `json:"params"`
+	ID      int             `json:"id"`
+}
+
+type jsonRPCResponse struct {
+	JSONRPC string          `json:"jsonrpc"`
+	Result  json.RawMessage `json:"result,omitempty"`
+	Error   *jsonRPCError   `json:"error,omitempty"`
+	ID      int             `json:"id"`
+}
+
+type jsonRPCError struct {
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data"`
+}
+
+type Server struct {
+    {{range .Services}}
+    {{.Name}}Service {{.Name}}
+    {{end}}
+}
+
+func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var request jsonRPCRequest
+
+	err := json.NewDecoder(r.Body).Decode(&request)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	methodSegments := strings.Split(request.Method, ".")
+	serviceName := methodSegments[0]
+	methodName := methodSegments[1]
+
+	response := jsonRPCResponse{
+		JSONRPC: request.JSONRPC,
+		ID:      request.ID,
+	}
+
+	var resultData json.RawMessage
+
+	switch serviceName {
+    {{range .Services}}
+    {{$service := .Name}}
+    case "{{$service}}":
+        switch methodName {
+        {{range .Methods}}
+        case "{{.Name}}":
+            var params {{$service}}{{.Name}}Params
+			var result {{$service}}{{.Name}}Result
+
+			err := s.{{$service}}Service.{{.Name}}(&params, &result)
+			if err != nil {
+				response.Error = &jsonRPCError{Message: err.Error()}
+			}
+
+			resultData, err = json.Marshal(result)
+			if err != nil {
+				response.Error = &jsonRPCError{Message: err.Error()}
+			}
+        {{end}}
+        }
+    {{end}}
+    }
+
+	response.Result = resultData
+
+	err = json.NewEncoder(w).Encode(response)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 {{range .Services}}
+{{$service := .Name}}
+{{range .Methods}}
+// {{$service}}{{.Name}}Params...
+type {{$service}}{{.Name}}Params struct {
+    {{range $field, $type := .Params}}
+    {{$field}} {{$type}} `json:"{{$field}}"`
+    {{end}}
+}
+
+// {{$service}}{{.Name}}Result...
+type {{$service}}{{.Name}}Result struct {
+    {{range $field, $type := .Result}}
+    {{$field}} {{$type}} `json:"{{$field}}"`
+    {{end}}
+}
+{{end}}
+
 // {{.Name}} {{.Description}}
 type {{.Name}} interface {
     {{range .Methods}}
-    func {{.Name}}() error
+    {{.Name}}(*{{$service}}{{.Name}}Params, *{{$service}}{{.Name}}Result) error
     {{end}}
 }
 {{end}}

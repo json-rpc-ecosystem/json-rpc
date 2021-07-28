@@ -1,7 +1,9 @@
 package spec
 
 import (
+	"io"
 	"io/ioutil"
+	"text/template"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
@@ -41,6 +43,41 @@ func DecodeFile(filename string, def *Definition) error {
 	diags = gohcl.DecodeBody(file.Body, nil, def)
 	if diags.HasErrors() {
 		return diags
+	}
+
+	return nil
+}
+
+func GenerateGo(w io.Writer, dir string, def *Definition) error {
+	_typeMap := map[string]string{
+		"String":  "string",
+		"Number":  "float64",
+		"Boolean": "bool",
+
+		"[]String":  "[]string",
+		"[]Number":  "[]float64",
+		"[]Boolean": "[]bool",
+	}
+
+	tmpl, err := template.ParseFiles(dir + "/rpc.go.template")
+	if err != nil {
+		return err
+	}
+
+	for sidx := range def.Services {
+		for midx := range def.Services[sidx].Methods {
+			for field, _type := range def.Services[sidx].Methods[midx].Params {
+				def.Services[sidx].Methods[midx].Params[field] = _typeMap[_type]
+			}
+			for field, _type := range def.Services[sidx].Methods[midx].Result {
+				def.Services[sidx].Methods[midx].Result[field] = _typeMap[_type]
+			}
+		}
+	}
+
+	err = tmpl.ExecuteTemplate(w, "rpc.go.template", def)
+	if err != nil {
+		return err
 	}
 
 	return nil

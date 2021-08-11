@@ -1,7 +1,9 @@
 package rpc
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
     "strings"
@@ -26,6 +28,75 @@ type jsonRPCError struct {
 	Message string      `json:"message"`
 	Data    interface{} `json:"data"`
 }
+
+type Client struct {
+	httpClient *http.Client
+	endpoint string
+
+	{{range .Services}}
+	{{.Name}} {{.Name}}
+	{{end}}
+}
+
+func NewClient(httpClient *http.Client, endpoint string) *Client {
+	c := Client{
+		httpClient: httpClient,
+		endpoint: endpoint,
+	}
+
+	{{range .Services}}
+	c.{{.Name}} = &internal{{.Name}}Client{client: &c}
+	{{end}}
+
+	return &c
+}
+
+{{range .Services}}
+type internal{{.Name}}Client struct {
+	client *Client
+}
+
+{{$service := .Name}}
+{{range .Methods}}
+func (c *internal{{$service}}Client) {{.Name}}(params *{{$service}}{{.Name}}Params) (*{{$service}}{{.Name}}Result, error) {
+	data, err := json.Marshal(params)
+	if err != nil {
+		return nil, fmt.Errorf("error marshalling {{$service}}{{.Name}}Params: %v", err)
+	}
+
+	req := jsonRPCRequest{
+		JSONRPC: "2.0",
+		Method:  "{{$service}}.{{.Name}}",
+		Params:  data,
+	}
+
+	rpcreq := bytes.NewBuffer(nil)
+	err = json.NewEncoder(rpcreq).Encode(req)
+	if err != nil {
+		return nil, fmt.Errorf("error encoding {{$service}}.{{.Name}} RPC request: %v", err)
+	}
+
+	res, err := c.client.httpClient.Post(c.client.endpoint, "application/json", rpcreq)
+	if err != nil {
+		return nil, fmt.Errorf("error POSTing {{$service}}.{{.Name}} RPC request: %v", err)
+	}
+
+	var rpcres *jsonRPCResponse
+	err = json.NewDecoder(res.Body).Decode(&rpcres)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding {{$service}}.{{.Name}} RPC response: %v", err)
+	}
+
+	var result *{{$service}}{{.Name}}Result
+	err = json.Unmarshal(rpcres.Result, &result)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshalling {{$service}}{{.Name}}Result: %v", err)
+	}
+
+	return result, nil
+}
+{{end}}
+{{end}}
 
 type Server struct {
     {{range .Services}}
@@ -60,9 +131,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
         {{range .Methods}}
         case "{{.Name}}":
             var params {{$service}}{{.Name}}Params
-			var result {{$service}}{{.Name}}Result
 
-			err := s.{{$service}}Service.{{.Name}}(&params, &result)
+			result, err := s.{{$service}}Service.{{.Name}}(&params)
 			if err != nil {
 				response.Error = &jsonRPCError{Message: err.Error()}
 			}
@@ -105,7 +175,7 @@ type {{$service}}{{.Name}}Result struct {
 // {{.Name}} {{.Description}}
 type {{.Name}} interface {
     {{range .Methods}}
-    {{.Name}}(*{{$service}}{{.Name}}Params, *{{$service}}{{.Name}}Result) error
+    {{.Name}}(*{{$service}}{{.Name}}Params) (*{{$service}}{{.Name}}Result, error)
     {{end}}
 }
 {{end}}

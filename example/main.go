@@ -29,7 +29,7 @@ type greeterService struct{}
 
 func (s *greeterService) SayHello(params *rpc.GreeterSayHelloParams) (*rpc.GreeterSayHelloResult, error) {
 	result := &rpc.GreeterSayHelloResult{}
-	result.Message = "HELLO"
+	result.Message = fmt.Sprintf("Dear %s, Someone named %s says 'hello!'", params.To, params.From)
 	return result, nil
 }
 

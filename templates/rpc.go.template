@@ -102,7 +102,7 @@ func (c *internal{{$service}}Client) {{.Name}}(params *{{$service}}{{.Name}}Para
 
 type Server struct {
     {{range .Services}}
-    {{.Name}}Service {{.Name}}
+    {{.Name}} {{.Name}}
     {{end}}
 }
 
@@ -138,7 +138,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				response.Error = &jsonRPCError{Message: err.Error()}
 			}
 
-			result, err := s.{{$service}}Service.{{.Name}}(&params)
+			result, err := s.{{$service}}.{{.Name}}(&params)
 			if err != nil {
 				response.Error = &jsonRPCError{Message: err.Error()}
 			}

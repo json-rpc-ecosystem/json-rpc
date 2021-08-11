@@ -9,25 +9,25 @@ import (
 	"github.com/json-rpc-ecosystem/json-rpc/example/rpc"
 )
 
-type arithService struct{}
+type arith struct{}
 
-func (s *arithService) Add(params *rpc.ArithAddParams) (*rpc.ArithAddResult, error) {
+func (s *arith) Add(params *rpc.ArithAddParams) (*rpc.ArithAddResult, error) {
 	return nil, nil
 }
 
-func (s *arithService) Pow(params *rpc.ArithPowParams) (*rpc.ArithPowResult, error) {
+func (s *arith) Pow(params *rpc.ArithPowParams) (*rpc.ArithPowResult, error) {
 	result := &rpc.ArithPowResult{}
 	result.Num = math.Pow(params.Base, params.Pow)
 	return result, nil
 }
 
-func (s *arithService) IsNegative(params *rpc.ArithIsNegativeParams) (*rpc.ArithIsNegativeResult, error) {
+func (s *arith) IsNegative(params *rpc.ArithIsNegativeParams) (*rpc.ArithIsNegativeResult, error) {
 	return nil, nil
 }
 
-type greeterService struct{}
+type greeter struct{}
 
-func (s *greeterService) SayHello(params *rpc.GreeterSayHelloParams) (*rpc.GreeterSayHelloResult, error) {
+func (s *greeter) SayHello(params *rpc.GreeterSayHelloParams) (*rpc.GreeterSayHelloResult, error) {
 	result := &rpc.GreeterSayHelloResult{}
 	result.Message = fmt.Sprintf("Dear %s, Someone named %s says 'hello!'", params.To, params.From)
 	return result, nil
@@ -35,8 +35,8 @@ func (s *greeterService) SayHello(params *rpc.GreeterSayHelloParams) (*rpc.Greet
 
 func main() {
 	server := rpc.Server{
-		ArithService:   &arithService{},
-		GreeterService: &greeterService{},
+		Arith:   &arith{},
+		Greeter: &greeter{},
 	}
 
 	go func() {

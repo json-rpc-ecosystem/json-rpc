@@ -227,9 +227,9 @@ func (c *internalGreeterClient) SayHello(params *GreeterSayHelloParams) (*Greete
 
 type Server struct {
     
-    ArithService Arith
+    Arith Arith
     
-    GreeterService Greeter
+    Greeter Greeter
     
 }
 
@@ -265,7 +265,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				response.Error = &jsonRPCError{Message: err.Error()}
 			}
 
-			result, err := s.ArithService.Add(&params)
+			result, err := s.Arith.Add(&params)
 			if err != nil {
 				response.Error = &jsonRPCError{Message: err.Error()}
 			}
@@ -282,7 +282,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				response.Error = &jsonRPCError{Message: err.Error()}
 			}
 
-			result, err := s.ArithService.Pow(&params)
+			result, err := s.Arith.Pow(&params)
 			if err != nil {
 				response.Error = &jsonRPCError{Message: err.Error()}
 			}
@@ -299,7 +299,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				response.Error = &jsonRPCError{Message: err.Error()}
 			}
 
-			result, err := s.ArithService.IsNegative(&params)
+			result, err := s.Arith.IsNegative(&params)
 			if err != nil {
 				response.Error = &jsonRPCError{Message: err.Error()}
 			}
@@ -322,7 +322,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				response.Error = &jsonRPCError{Message: err.Error()}
 			}
 
-			result, err := s.GreeterService.SayHello(&params)
+			result, err := s.Greeter.SayHello(&params)
 			if err != nil {
 				response.Error = &jsonRPCError{Message: err.Error()}
 			}

@@ -3,6 +3,37 @@
 const url = require('url');
 const http = require('http');
 
+function doRPCRequest(endpoint, method, params) {
+    return new Promise((resolve, reject) => {
+        const req = http.request(endpoint, {method: "POST"}, res => {
+                const buffers = [];
+                res.on('data', chunk => {
+                    buffers.push(chunk);
+                });
+
+                res.on('end', () => {
+                    const jsonRPCResponse = JSON.parse(Buffer.concat(buffers).toString());
+                    if(jsonRPCResponse.error) {
+                        reject(jsonRPCResponse.error);
+                        return
+                    }
+
+                    resolve(jsonRPCResponse.result);
+                });
+            });
+
+        const jsonRPCRequest = {
+            jsonrpc: "2.0",
+            method: method,
+            params: params
+        }
+
+        req.write(JSON.stringify(jsonRPCRequest));
+        req.end();
+    })
+}
+
+
 
 module.exports.Arith = class Arith {
     constructor() {}
@@ -49,7 +80,7 @@ module.exports.Server = class Server {
             req.on('data', chunk => {
                 buffers.push(chunk);
             });
-            
+
             req.on('end', () => {
                 const jsonRPCRequest = JSON.parse(Buffer.concat(buffers).toString());
                 const jsonRPCResponse = {jsonrpc: "2.0"};
@@ -96,12 +127,27 @@ module.exports.Server = class Server {
     }
 }
 
+
 class ArithClient extends module.exports.Arith {
     constructor(client, endpoint) {
         super();
         this.client = client;
         this.endpoint = endpoint;
     }
+
+    
+    Add(params) {
+        return doRPCRequest(this.client.endpoint + this.endpoint, "Add", params);
+    }
+    
+    Pow(params) {
+        return doRPCRequest(this.client.endpoint + this.endpoint, "Pow", params);
+    }
+    
+    IsNegative(params) {
+        return doRPCRequest(this.client.endpoint + this.endpoint, "IsNegative", params);
+    }
+    
 }
 
 class GreeterClient extends module.exports.Greeter {
@@ -111,41 +157,21 @@ class GreeterClient extends module.exports.Greeter {
         this.endpoint = endpoint;
     }
 
+    
     SayHello(params) {
-        return new Promise((resolve, reject) => {
-            const req = http.request(this.client.endpoint + this.endpoint, {method: "POST"}, res => {
-                    const buffers = [];
-                    res.on('data', chunk => {
-                        buffers.push(chunk);
-                    });
-                    
-                    res.on('end', () => {
-                        const jsonRPCResponse = JSON.parse(Buffer.concat(buffers).toString());
-                        if(jsonRPCResponse.error) {
-                            reject(jsonRPCResponse.error);
-                            return
-                        }
-                        
-                        resolve(jsonRPCResponse.result);
-                    });
-                });
-
-            const jsonRPCRequest = {
-                jsonrpc: "2.0",
-                method: "SayHello",
-                params: params
-            }
-
-            req.write(JSON.stringify(jsonRPCRequest));
-            req.end();
-        })
+        return doRPCRequest(this.client.endpoint + this.endpoint, "SayHello", params);
     }
+    
 }
+
 
 module.exports.Client = class Client {
     constructor(endpoint) {
         this.endpoint = endpoint
+        
         this.Arith = new ArithClient(this, "/arith");
+        
         this.Greeter = new GreeterClient(this, "/greeter");
+        
     }
 }

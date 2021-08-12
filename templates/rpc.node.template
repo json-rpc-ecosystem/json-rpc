@@ -1,6 +1,37 @@
 'use string';
 
 const url = require('url');
+const http = require('http');
+
+function doRPCRequest(endpoint, method, params) {
+    return new Promise((resolve, reject) => {
+        const req = http.request(endpoint, {method: "POST"}, res => {
+                const buffers = [];
+                res.on('data', chunk => {
+                    buffers.push(chunk);
+                });
+
+                res.on('end', () => {
+                    const jsonRPCResponse = JSON.parse(Buffer.concat(buffers).toString());
+                    if(jsonRPCResponse.error) {
+                        reject(jsonRPCResponse.error);
+                        return
+                    }
+
+                    resolve(jsonRPCResponse.result);
+                });
+            });
+
+        const jsonRPCRequest = {
+            jsonrpc: "2.0",
+            method: method,
+            params: params
+        }
+
+        req.write(JSON.stringify(jsonRPCRequest));
+        req.end();
+    })
+}
 
 {{range .Services}}
 {{$service := .Name}}
@@ -23,33 +54,60 @@ module.exports.Server = class Server {
     }
 
     requestListener() {
-        return async (req, res) => {
+        return (req, res) => {
             const buffers = [];
-            for await (const chunk of req) {
+            req.on('data', chunk => {
                 buffers.push(chunk);
-            }
+            });
 
-            const jsonRPCRequest = JSON.parse(Buffer.concat(buffers).toString());
-            const jsonRPCResponse = {jsonrpc: "2.0"};
-            
-            const path = url.parse(req.url, true).pathname;
-            switch(path) {
-                {{range .Services}}
-                {{$service := .Name}}
-                case "{{.Endpoint}}":
-                    switch(jsonRPCRequest.method) {
-                        {{range .Methods}}
-                        case "{{.Name}}":
-                            jsonRPCResponse.result = await this.{{$service}}.{{.Name}}(jsonRPCRequest.params);
-                            break;
-                        {{end}}
-                    }
-                    break;
-                {{end}}
-            }
+            req.on('end', () => {
+                const jsonRPCRequest = JSON.parse(Buffer.concat(buffers).toString());
+                const jsonRPCResponse = {jsonrpc: "2.0"};
+                
+                const path = url.parse(req.url, true).pathname;
+                switch(path) {
+                    {{range .Services}}
+                    {{$service := .Name}}
+                    case "{{.Endpoint}}":
+                        switch(jsonRPCRequest.method) {
+                            {{range .Methods}}
+                            case "{{.Name}}":
+                                jsonRPCResponse.result = this.{{$service}}.{{.Name}}(jsonRPCRequest.params);
+                                break;
+                            {{end}}
+                        }
+                        break;
+                    {{end}}
+                }
 
-            res.write(JSON.stringify(jsonRPCResponse));
-            res.end();
+                res.write(JSON.stringify(jsonRPCResponse));
+                res.end();
+            });
         };
+    }
+}
+
+{{range .Services}}
+class {{.Name}}Client extends module.exports.{{.Name}} {
+    constructor(client, endpoint) {
+        super();
+        this.client = client;
+        this.endpoint = endpoint;
+    }
+
+    {{range .Methods}}
+    {{.Name}}(params) {
+        return doRPCRequest(this.client.endpoint + this.endpoint, "{{.Name}}", params);
+    }
+    {{end}}
+}
+{{end}}
+
+module.exports.Client = class Client {
+    constructor(endpoint) {
+        this.endpoint = endpoint
+        {{range .Services}}
+        this.{{.Name}} = new {{.Name}}Client(this, "{{.Endpoint}}");
+        {{end}}
     }
 }

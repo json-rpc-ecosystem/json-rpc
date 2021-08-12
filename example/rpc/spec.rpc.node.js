@@ -113,15 +113,13 @@ class GreeterClient extends module.exports.Greeter {
 
     SayHello(params) {
         return new Promise((resolve, reject) => {
-            const req = http.request(this.client.endpoint + this.endpoint, null, res => {
+            const req = http.request(this.client.endpoint + this.endpoint, {method: "POST"}, res => {
                     const buffers = [];
                     res.on('data', chunk => {
                         buffers.push(chunk);
                     });
                     
                     res.on('end', () => {
-                        console.log("Client", Buffer.concat(buffers).toString())
-
                         const jsonRPCResponse = JSON.parse(Buffer.concat(buffers).toString());
                         if(jsonRPCResponse.error) {
                             reject(jsonRPCResponse.error);

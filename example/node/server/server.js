@@ -1,4 +1,4 @@
-const rpc = require("./rpc/spec.rpc.node");
+const rpc = require("../../rpc/spec.rpc.node");
 const http = require('http');
 
 class arith extends rpc.Arith {
@@ -35,8 +35,4 @@ server.Greeter = new greeter();
 
 const httpServer = http.createServer(server.requestListener());
 
-httpServer.listen("8080", () => {
-    const c = new rpc.Client("http://localhost:8080");
-
-    c.Greeter.SayHello({From: "Blain", To: "Austin"}).then(console.log);
-});
+httpServer.listen("8080");

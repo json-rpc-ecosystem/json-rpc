@@ -82,3 +82,38 @@ func GenerateGo(w io.Writer, dir string, def *Definition) error {
 
 	return nil
 }
+
+func GenerateNode(w io.Writer, dir string, def *Definition) error {
+	_typeMap := map[string]string{
+		"String":  "String",
+		"Number":  "Number",
+		"Boolean": "Boolean",
+
+		"[]String":  "Array<String>",
+		"[]Number":  "Array<Number>",
+		"[]Boolean": "Array<Boolean>",
+	}
+
+	tmpl, err := template.ParseFiles(dir + "/rpc.node.template")
+	if err != nil {
+		return err
+	}
+
+	for sidx := range def.Services {
+		for midx := range def.Services[sidx].Methods {
+			for field, _type := range def.Services[sidx].Methods[midx].Params {
+				def.Services[sidx].Methods[midx].Params[field] = _typeMap[_type]
+			}
+			for field, _type := range def.Services[sidx].Methods[midx].Result {
+				def.Services[sidx].Methods[midx].Result[field] = _typeMap[_type]
+			}
+		}
+	}
+
+	err = tmpl.ExecuteTemplate(w, "rpc.node.template", def)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

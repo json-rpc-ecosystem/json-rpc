@@ -1,0 +1,55 @@
+'use string';
+
+const url = require('url');
+
+{{range .Services}}
+{{$service := .Name}}
+module.exports.{{$service}} = class {{$service}} {
+    constructor() {}
+
+    {{range .Methods}}
+    {{.Name}}(params) {
+        throw new Error("{{$service}} does not implment method {{.Name}}");
+    }
+    {{end}}
+}
+{{end}}
+
+module.exports.Server = class Server {
+    constructor() {
+        {{range .Services}}
+        this.{{.Name}} = null;
+        {{end}}
+    }
+
+    requestListener() {
+        return async (req, res) => {
+            const buffers = [];
+            for await (const chunk of req) {
+                buffers.push(chunk);
+            }
+
+            const jsonRPCRequest = JSON.parse(Buffer.concat(buffers).toString());
+            const jsonRPCResponse = {jsonrpc: "2.0"};
+            
+            const path = url.parse(req.url, true).pathname;
+            switch(path) {
+                {{range .Services}}
+                {{$service := .Name}}
+                case "{{.Endpoint}}":
+                    switch(jsonRPCRequest.method) {
+                        {{range .Methods}}
+                        case "{{.Name}}":
+                            jsonRPCResponse.result = await this.{{$service}}.{{.Name}}(jsonRPCRequest.params);
+                            break;
+                        {{end}}
+                    }
+                    break;
+                {{end}}
+            }
+
+            res.write(JSON.stringify(jsonRPCResponse));
+            res.end();
+        };
+    }
+}

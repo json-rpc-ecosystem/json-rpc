@@ -1,8 +1,9 @@
 version = "2.0"
-endpoint = "/rpc"
 
 service "Arith" {
     description = "exposes basic arithmatic functions"
+
+    endpoint = "/arith"
 
     method "Add" {
         description = "adds all the numbers together"
@@ -25,6 +26,8 @@ service "Arith" {
 
 service "Greeter" {
     description = "does lots of greetings"
+
+    endpoint = "/greeter"
     
     method "SayHello" {
         description = "composes a message with the from and to parties"

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-    "strings"
 )
 
 type jsonRPCRequest struct {
@@ -49,9 +48,9 @@ func NewClient(httpClient *http.Client, endpoint string) *Client {
 	}
 
 	
-	c.Arith = &internalArithClient{client: &c}
+	c.Arith = &internalArithClient{client: &c, endpoint: "/arith"}
 	
-	c.Greeter = &internalGreeterClient{client: &c}
+	c.Greeter = &internalGreeterClient{client: &c, endpoint: "/greeter"}
 	
 
 	return &c
@@ -60,6 +59,7 @@ func NewClient(httpClient *http.Client, endpoint string) *Client {
 
 type internalArithClient struct {
 	client *Client
+	endpoint string
 }
 
 
@@ -72,19 +72,19 @@ func (c *internalArithClient) Add(params *ArithAddParams) (*ArithAddResult, erro
 
 	req := jsonRPCRequest{
 		JSONRPC: "2.0",
-		Method:  "Arith.Add",
+		Method:  "Add",
 		Params:  data,
 	}
 
 	rpcreq := bytes.NewBuffer(nil)
 	err = json.NewEncoder(rpcreq).Encode(req)
 	if err != nil {
-		return nil, fmt.Errorf("error encoding Arith.Add RPC request: %v", err)
+		return nil, fmt.Errorf("error encoding Arith Add RPC request: %v", err)
 	}
 
-	res, err := c.client.httpClient.Post(c.client.endpoint, "application/json", rpcreq)
+	res, err := c.client.httpClient.Post(c.client.endpoint+c.endpoint, "application/json", rpcreq)
 	if err != nil {
-		return nil, fmt.Errorf("error POSTing Arith.Add RPC request: %v", err)
+		return nil, fmt.Errorf("error POSTing Arith Add RPC request: %v", err)
 	}
 
 	var rpcres *jsonRPCResponse
@@ -110,19 +110,19 @@ func (c *internalArithClient) Pow(params *ArithPowParams) (*ArithPowResult, erro
 
 	req := jsonRPCRequest{
 		JSONRPC: "2.0",
-		Method:  "Arith.Pow",
+		Method:  "Pow",
 		Params:  data,
 	}
 
 	rpcreq := bytes.NewBuffer(nil)
 	err = json.NewEncoder(rpcreq).Encode(req)
 	if err != nil {
-		return nil, fmt.Errorf("error encoding Arith.Pow RPC request: %v", err)
+		return nil, fmt.Errorf("error encoding Arith Pow RPC request: %v", err)
 	}
 
-	res, err := c.client.httpClient.Post(c.client.endpoint, "application/json", rpcreq)
+	res, err := c.client.httpClient.Post(c.client.endpoint+c.endpoint, "application/json", rpcreq)
 	if err != nil {
-		return nil, fmt.Errorf("error POSTing Arith.Pow RPC request: %v", err)
+		return nil, fmt.Errorf("error POSTing Arith Pow RPC request: %v", err)
 	}
 
 	var rpcres *jsonRPCResponse
@@ -148,19 +148,19 @@ func (c *internalArithClient) IsNegative(params *ArithIsNegativeParams) (*ArithI
 
 	req := jsonRPCRequest{
 		JSONRPC: "2.0",
-		Method:  "Arith.IsNegative",
+		Method:  "IsNegative",
 		Params:  data,
 	}
 
 	rpcreq := bytes.NewBuffer(nil)
 	err = json.NewEncoder(rpcreq).Encode(req)
 	if err != nil {
-		return nil, fmt.Errorf("error encoding Arith.IsNegative RPC request: %v", err)
+		return nil, fmt.Errorf("error encoding Arith IsNegative RPC request: %v", err)
 	}
 
-	res, err := c.client.httpClient.Post(c.client.endpoint, "application/json", rpcreq)
+	res, err := c.client.httpClient.Post(c.client.endpoint+c.endpoint, "application/json", rpcreq)
 	if err != nil {
-		return nil, fmt.Errorf("error POSTing Arith.IsNegative RPC request: %v", err)
+		return nil, fmt.Errorf("error POSTing Arith IsNegative RPC request: %v", err)
 	}
 
 	var rpcres *jsonRPCResponse
@@ -181,6 +181,7 @@ func (c *internalArithClient) IsNegative(params *ArithIsNegativeParams) (*ArithI
 
 type internalGreeterClient struct {
 	client *Client
+	endpoint string
 }
 
 
@@ -193,19 +194,19 @@ func (c *internalGreeterClient) SayHello(params *GreeterSayHelloParams) (*Greete
 
 	req := jsonRPCRequest{
 		JSONRPC: "2.0",
-		Method:  "Greeter.SayHello",
+		Method:  "SayHello",
 		Params:  data,
 	}
 
 	rpcreq := bytes.NewBuffer(nil)
 	err = json.NewEncoder(rpcreq).Encode(req)
 	if err != nil {
-		return nil, fmt.Errorf("error encoding Greeter.SayHello RPC request: %v", err)
+		return nil, fmt.Errorf("error encoding Greeter SayHello RPC request: %v", err)
 	}
 
-	res, err := c.client.httpClient.Post(c.client.endpoint, "application/json", rpcreq)
+	res, err := c.client.httpClient.Post(c.client.endpoint+c.endpoint, "application/json", rpcreq)
 	if err != nil {
-		return nil, fmt.Errorf("error POSTing Greeter.SayHello RPC request: %v", err)
+		return nil, fmt.Errorf("error POSTing Greeter SayHello RPC request: %v", err)
 	}
 
 	var rpcres *jsonRPCResponse
@@ -233,17 +234,25 @@ type Server struct {
     
 }
 
-func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *Server) Mux() *http.ServeMux {
+	mux := http.NewServeMux()
+	
+	mux.HandleFunc("/arith", s.ArithHandler)
+	
+	mux.HandleFunc("/greeter", s.GreeterHandler)
+	
+	return mux
+}
+
+
+
+func (s *Server) ArithHandler(w http.ResponseWriter, r *http.Request) {
 	var request jsonRPCRequest
 
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	methodSegments := strings.Split(request.Method, ".")
-	serviceName := methodSegments[0]
-	methodName := methodSegments[1]
 
 	response := jsonRPCResponse{
 		JSONRPC: request.JSONRPC,
@@ -252,89 +261,63 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var resultData json.RawMessage
 
-	switch serviceName {
-    
-    
-    case "Arith":
-        switch methodName {
-        
-        case "Add":
-            var params ArithAddParams
-			err = json.Unmarshal(request.Params, &params)
-			if err != nil {
-				response.Error = &jsonRPCError{Message: err.Error()}
-			}
 
-			result, err := s.Arith.Add(&params)
-			if err != nil {
-				response.Error = &jsonRPCError{Message: err.Error()}
-			}
+	switch request.Method {
+	
+	case "Add":
+		var params ArithAddParams
+		err = json.Unmarshal(request.Params, &params)
+		if err != nil {
+			response.Error = &jsonRPCError{Message: err.Error()}
+		}
 
-			resultData, err = json.Marshal(result)
-			if err != nil {
-				response.Error = &jsonRPCError{Message: err.Error()}
-			}
-        
-        case "Pow":
-            var params ArithPowParams
-			err = json.Unmarshal(request.Params, &params)
-			if err != nil {
-				response.Error = &jsonRPCError{Message: err.Error()}
-			}
+		result, err := s.Arith.Add(&params)
+		if err != nil {
+			response.Error = &jsonRPCError{Message: err.Error()}
+		}
 
-			result, err := s.Arith.Pow(&params)
-			if err != nil {
-				response.Error = &jsonRPCError{Message: err.Error()}
-			}
+		resultData, err = json.Marshal(result)
+		if err != nil {
+			response.Error = &jsonRPCError{Message: err.Error()}
+		}
+	
+	case "Pow":
+		var params ArithPowParams
+		err = json.Unmarshal(request.Params, &params)
+		if err != nil {
+			response.Error = &jsonRPCError{Message: err.Error()}
+		}
 
-			resultData, err = json.Marshal(result)
-			if err != nil {
-				response.Error = &jsonRPCError{Message: err.Error()}
-			}
-        
-        case "IsNegative":
-            var params ArithIsNegativeParams
-			err = json.Unmarshal(request.Params, &params)
-			if err != nil {
-				response.Error = &jsonRPCError{Message: err.Error()}
-			}
+		result, err := s.Arith.Pow(&params)
+		if err != nil {
+			response.Error = &jsonRPCError{Message: err.Error()}
+		}
 
-			result, err := s.Arith.IsNegative(&params)
-			if err != nil {
-				response.Error = &jsonRPCError{Message: err.Error()}
-			}
+		resultData, err = json.Marshal(result)
+		if err != nil {
+			response.Error = &jsonRPCError{Message: err.Error()}
+		}
+	
+	case "IsNegative":
+		var params ArithIsNegativeParams
+		err = json.Unmarshal(request.Params, &params)
+		if err != nil {
+			response.Error = &jsonRPCError{Message: err.Error()}
+		}
 
-			resultData, err = json.Marshal(result)
-			if err != nil {
-				response.Error = &jsonRPCError{Message: err.Error()}
-			}
-        
-        }
-    
-    
-    case "Greeter":
-        switch methodName {
-        
-        case "SayHello":
-            var params GreeterSayHelloParams
-			err = json.Unmarshal(request.Params, &params)
-			if err != nil {
-				response.Error = &jsonRPCError{Message: err.Error()}
-			}
+		result, err := s.Arith.IsNegative(&params)
+		if err != nil {
+			response.Error = &jsonRPCError{Message: err.Error()}
+		}
 
-			result, err := s.Greeter.SayHello(&params)
-			if err != nil {
-				response.Error = &jsonRPCError{Message: err.Error()}
-			}
-
-			resultData, err = json.Marshal(result)
-			if err != nil {
-				response.Error = &jsonRPCError{Message: err.Error()}
-			}
-        
-        }
-    
-    }
+		resultData, err = json.Marshal(result)
+		if err != nil {
+			response.Error = &jsonRPCError{Message: err.Error()}
+		}
+	
+	default:
+		response.Error = &jsonRPCError{Code: -32601, Message: "Method not found"}
+	}
 
 	response.Result = resultData
 
@@ -343,6 +326,55 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 }
+
+
+func (s *Server) GreeterHandler(w http.ResponseWriter, r *http.Request) {
+	var request jsonRPCRequest
+
+	err := json.NewDecoder(r.Body).Decode(&request)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	response := jsonRPCResponse{
+		JSONRPC: request.JSONRPC,
+		ID:      request.ID,
+	}
+
+	var resultData json.RawMessage
+
+
+	switch request.Method {
+	
+	case "SayHello":
+		var params GreeterSayHelloParams
+		err = json.Unmarshal(request.Params, &params)
+		if err != nil {
+			response.Error = &jsonRPCError{Message: err.Error()}
+		}
+
+		result, err := s.Greeter.SayHello(&params)
+		if err != nil {
+			response.Error = &jsonRPCError{Message: err.Error()}
+		}
+
+		resultData, err = json.Marshal(result)
+		if err != nil {
+			response.Error = &jsonRPCError{Message: err.Error()}
+		}
+	
+	default:
+		response.Error = &jsonRPCError{Code: -32601, Message: "Method not found"}
+	}
+
+	response.Result = resultData
+
+	err = json.NewEncoder(w).Encode(response)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 
 
 

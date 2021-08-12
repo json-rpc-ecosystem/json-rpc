@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-    "strings"
 )
 
 type jsonRPCRequest struct {
@@ -47,7 +46,7 @@ func NewClient(httpClient *http.Client, endpoint string) *Client {
 	}
 
 	{{range .Services}}
-	c.{{.Name}} = &internal{{.Name}}Client{client: &c}
+	c.{{.Name}} = &internal{{.Name}}Client{client: &c, endpoint: "{{.Endpoint}}"}
 	{{end}}
 
 	return &c
@@ -56,6 +55,7 @@ func NewClient(httpClient *http.Client, endpoint string) *Client {
 {{range .Services}}
 type internal{{.Name}}Client struct {
 	client *Client
+	endpoint string
 }
 
 {{$service := .Name}}
@@ -68,19 +68,19 @@ func (c *internal{{$service}}Client) {{.Name}}(params *{{$service}}{{.Name}}Para
 
 	req := jsonRPCRequest{
 		JSONRPC: "2.0",
-		Method:  "{{$service}}.{{.Name}}",
+		Method:  "{{.Name}}",
 		Params:  data,
 	}
 
 	rpcreq := bytes.NewBuffer(nil)
 	err = json.NewEncoder(rpcreq).Encode(req)
 	if err != nil {
-		return nil, fmt.Errorf("error encoding {{$service}}.{{.Name}} RPC request: %v", err)
+		return nil, fmt.Errorf("error encoding {{$service}} {{.Name}} RPC request: %v", err)
 	}
 
-	res, err := c.client.httpClient.Post(c.client.endpoint, "application/json", rpcreq)
+	res, err := c.client.httpClient.Post(c.client.endpoint+c.endpoint, "application/json", rpcreq)
 	if err != nil {
-		return nil, fmt.Errorf("error POSTing {{$service}}.{{.Name}} RPC request: %v", err)
+		return nil, fmt.Errorf("error POSTing {{$service}} {{.Name}} RPC request: %v", err)
 	}
 
 	var rpcres *jsonRPCResponse
@@ -106,17 +106,23 @@ type Server struct {
     {{end}}
 }
 
-func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *Server) Mux() *http.ServeMux {
+	mux := http.NewServeMux()
+	{{range .Services}}
+	mux.HandleFunc("{{.Endpoint}}", s.{{.Name}}Handler)
+	{{end}}
+	return mux
+}
+
+{{range .Services}}
+{{$service := .Name}}
+func (s *Server) {{.Name}}Handler(w http.ResponseWriter, r *http.Request) {
 	var request jsonRPCRequest
 
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	methodSegments := strings.Split(request.Method, ".")
-	serviceName := methodSegments[0]
-	methodName := methodSegments[1]
 
 	response := jsonRPCResponse{
 		JSONRPC: request.JSONRPC,
@@ -125,32 +131,29 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var resultData json.RawMessage
 
-	switch serviceName {
-    {{range .Services}}
-    {{$service := .Name}}
-    case "{{$service}}":
-        switch methodName {
-        {{range .Methods}}
-        case "{{.Name}}":
-            var params {{$service}}{{.Name}}Params
-			err = json.Unmarshal(request.Params, &params)
-			if err != nil {
-				response.Error = &jsonRPCError{Message: err.Error()}
-			}
 
-			result, err := s.{{$service}}.{{.Name}}(&params)
-			if err != nil {
-				response.Error = &jsonRPCError{Message: err.Error()}
-			}
+	switch request.Method {
+	{{range .Methods}}
+	case "{{.Name}}":
+		var params {{$service}}{{.Name}}Params
+		err = json.Unmarshal(request.Params, &params)
+		if err != nil {
+			response.Error = &jsonRPCError{Message: err.Error()}
+		}
 
-			resultData, err = json.Marshal(result)
-			if err != nil {
-				response.Error = &jsonRPCError{Message: err.Error()}
-			}
-        {{end}}
-        }
-    {{end}}
-    }
+		result, err := s.{{$service}}.{{.Name}}(&params)
+		if err != nil {
+			response.Error = &jsonRPCError{Message: err.Error()}
+		}
+
+		resultData, err = json.Marshal(result)
+		if err != nil {
+			response.Error = &jsonRPCError{Message: err.Error()}
+		}
+	{{end}}
+	default:
+		response.Error = &jsonRPCError{Code: -32601, Message: "Method not found"}
+	}
 
 	response.Result = resultData
 
@@ -159,6 +162,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 }
+{{end}}
 
 {{range .Services}}
 {{$service := .Name}}

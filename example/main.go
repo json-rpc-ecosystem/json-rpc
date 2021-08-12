@@ -40,7 +40,7 @@ func main() {
 	}
 
 	go func() {
-		err := http.ListenAndServe(":8080", &server)
+		err := http.ListenAndServe(":8080", server.Mux())
 		if err != nil {
 			log.Fatal(err)
 		}

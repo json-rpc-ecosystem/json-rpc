@@ -12,13 +12,13 @@ import (
 
 type Definition struct {
 	Version  string    `hcl:"version"`
-	Endpoint string    `hcl:"endpoint"`
 	Services []Service `hcl:"service,block"`
 }
 
 type Service struct {
 	Name        string   `hcl:"name,label"`
 	Description string   `hcl:"description"`
+	Endpoint    string   `hcl:"endpoint"`
 	Methods     []Method `hcl:"method,block"`
 }
 

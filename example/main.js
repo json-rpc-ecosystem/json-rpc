@@ -25,7 +25,7 @@ class greeter extends rpc.Greeter {
     }
 
     SayHello(params) {
-        return {Message: "Hello " + params.To + " from " + params.From};
+        return {Message: "HELLO " + params.To + " from " + params.From};
     }
 }
 
@@ -38,7 +38,5 @@ const httpServer = http.createServer(server.requestListener());
 httpServer.listen("8080", () => {
     const c = new rpc.Client("http://localhost:8080");
 
-    c.Greeter.SayHello({From: "Blain", To: "Austin"}).then((data) => {
-        console.log("caller", data)
-    });
+    c.Greeter.SayHello({From: "Blain", To: "Austin"}).then(console.log);
 });

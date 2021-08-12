@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"net/http"
 
@@ -33,19 +34,19 @@ func (s *greeter) SayHello(params *rpc.GreeterSayHelloParams) (*rpc.GreeterSayHe
 }
 
 func main() {
-	// server := rpc.Server{
-	// 	Arith:   &arith{},
-	// 	Greeter: &greeter{},
-	// }
+	server := rpc.Server{
+		Arith:   &arith{},
+		Greeter: &greeter{},
+	}
 
 	// go func() {
-	// 	err := http.ListenAndServe(":8080", server.Mux())
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
+	err := http.ListenAndServe(":8080", server.Mux())
+	if err != nil {
+		log.Fatal(err)
+	}
 	// }()
 
-	c := rpc.NewClient(http.DefaultClient, "http://localhost:8080")
+	// c := rpc.NewClient(http.DefaultClient, "http://localhost:8080")
 
-	fmt.Println(c.Greeter.SayHello(&rpc.GreeterSayHelloParams{From: "Blain", To: "Austin"}))
+	// fmt.Println(c.Greeter.SayHello(&rpc.GreeterSayHelloParams{From: "Blain", To: "Austin"}))
 }

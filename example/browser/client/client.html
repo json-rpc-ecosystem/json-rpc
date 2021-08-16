@@ -1,0 +1,13 @@
+<html>
+    <head>
+        <title>JSON-RPC Client</title>
+    </head>
+    <body>
+        See the debug console.
+    </body>
+    <script src="../../rpc/spec.rpc.browser.js"></script>
+    <script>
+        const c = new window.Client("http://localhost:8080");
+        c.Greeter.SayHello({From: "Blain", To: "Austin"}).then(console.log);
+    </script>
+</html>

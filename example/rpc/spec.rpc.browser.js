@@ -15,7 +15,7 @@ function checkStatus(response) {
     error.response = response;
     throw error;
 }
-
+  
 function checkError(data) {
     if (data.error) {
         throw new Error(data.error.message);
@@ -38,24 +38,47 @@ function doRPCRequest(endpoint, method, params) {
             .catch(console.log);
 }
 
-{{range .Services}}
-{{$service := .Name}}
-function {{.Name}}Client(client, endpoint) {
+
+
+function ArithClient(client, endpoint) {
     this.client = client;
     this.endpoint = endpoint;
 }
 
-{{range .Methods}}
-{{$service}}Client.prototype.{{.Name}} = function(params) {
-    return doRPCRequest(this.client.endpoint + this.endpoint, "{{.Name}}", params);
+
+ArithClient.prototype.Add = function(params) {
+    return doRPCRequest(this.client.endpoint + this.endpoint, "Add", params);
 }
-{{end}}
-{{end}}
+
+ArithClient.prototype.Pow = function(params) {
+    return doRPCRequest(this.client.endpoint + this.endpoint, "Pow", params);
+}
+
+ArithClient.prototype.IsNegative = function(params) {
+    return doRPCRequest(this.client.endpoint + this.endpoint, "IsNegative", params);
+}
+
+
+
+function GreeterClient(client, endpoint) {
+    this.client = client;
+    this.endpoint = endpoint;
+}
+
+
+GreeterClient.prototype.SayHello = function(params) {
+    return doRPCRequest(this.client.endpoint + this.endpoint, "SayHello", params);
+}
+
+
+
 
 function Client(endpoint) {
     this.endpoint = endpoint
-
-    {{range .Services}}
-    this.{{.Name}} = new {{.Name}}Client(this, "{{.Endpoint}}");
-    {{end}}
+    
+    
+    this.Arith = new ArithClient(this, "/arith");
+    
+    this.Greeter = new GreeterClient(this, "/greeter");
+    
 }

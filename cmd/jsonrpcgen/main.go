@@ -36,6 +36,8 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		log.Println("Generated: ", *browserOutDir+baseSpecFile+".browser.js")
 	}
 
 	if *goOutDir != "" {
@@ -49,6 +51,8 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		log.Println("Generated: ", *goOutDir+baseSpecFile+".go")
 	}
 
 	if *nodeOutDir != "" {
@@ -62,5 +66,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		log.Println("Generated: ", *nodeOutDir+baseSpecFile+".node.js")
 	}
 }

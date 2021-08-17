@@ -15,7 +15,7 @@ function checkStatus(response) {
     error.response = response;
     throw error;
 }
-  
+
 function checkError(data) {
     if (data.error) {
         throw new Error(data.error.message);
@@ -72,10 +72,9 @@ GreeterClient.prototype.SayHello = function(params) {
 
 
 
-
 function Client(endpoint) {
     this.endpoint = endpoint
-    
+
     
     this.Arith = new ArithClient(this, "/arith");
     

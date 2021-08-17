@@ -29,6 +29,33 @@ type Method struct {
 	Result      map[string]string `hcl:"result"`
 }
 
+func copyDefinition(dst *Definition, src *Definition) {
+	dst.Version = src.Version
+	dst.Services = make([]Service, len(src.Services))
+
+	for sidx := range src.Services {
+		dst.Services[sidx].Name = src.Services[sidx].Name
+		dst.Services[sidx].Description = src.Services[sidx].Description
+		dst.Services[sidx].Endpoint = src.Services[sidx].Endpoint
+		dst.Services[sidx].Methods = make([]Method, len(src.Services[sidx].Methods))
+
+		for midx := range src.Services[sidx].Methods {
+			dst.Services[sidx].Methods[midx].Name = src.Services[sidx].Methods[midx].Name
+			dst.Services[sidx].Methods[midx].Description = src.Services[sidx].Methods[midx].Description
+
+			dst.Services[sidx].Methods[midx].Params = make(map[string]string)
+			for field := range src.Services[sidx].Methods[midx].Params {
+				dst.Services[sidx].Methods[midx].Params[field] = src.Services[sidx].Methods[midx].Params[field]
+			}
+
+			dst.Services[sidx].Methods[midx].Result = make(map[string]string)
+			for field := range src.Services[sidx].Methods[midx].Result {
+				dst.Services[sidx].Methods[midx].Result[field] = src.Services[sidx].Methods[midx].Result[field]
+			}
+		}
+	}
+}
+
 func DecodeFile(filename string, def *Definition) error {
 	src, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -64,18 +91,21 @@ func GenerateBrowser(w io.Writer, dir string, def *Definition) error {
 		return err
 	}
 
-	for sidx := range def.Services {
-		for midx := range def.Services[sidx].Methods {
-			for field, _type := range def.Services[sidx].Methods[midx].Params {
-				def.Services[sidx].Methods[midx].Params[field] = _typeMap[_type]
+	var localdef Definition
+	copyDefinition(&localdef, def)
+
+	for sidx := range localdef.Services {
+		for midx := range localdef.Services[sidx].Methods {
+			for field, _type := range localdef.Services[sidx].Methods[midx].Params {
+				localdef.Services[sidx].Methods[midx].Params[field] = _typeMap[_type]
 			}
-			for field, _type := range def.Services[sidx].Methods[midx].Result {
-				def.Services[sidx].Methods[midx].Result[field] = _typeMap[_type]
+			for field, _type := range localdef.Services[sidx].Methods[midx].Result {
+				localdef.Services[sidx].Methods[midx].Result[field] = _typeMap[_type]
 			}
 		}
 	}
 
-	err = tmpl.ExecuteTemplate(w, "rpc.browser.template", def)
+	err = tmpl.ExecuteTemplate(w, "rpc.browser.template", localdef)
 	if err != nil {
 		return err
 	}
@@ -99,18 +129,21 @@ func GenerateGo(w io.Writer, dir string, def *Definition) error {
 		return err
 	}
 
-	for sidx := range def.Services {
-		for midx := range def.Services[sidx].Methods {
-			for field, _type := range def.Services[sidx].Methods[midx].Params {
-				def.Services[sidx].Methods[midx].Params[field] = _typeMap[_type]
+	var localdef Definition
+	copyDefinition(&localdef, def)
+
+	for sidx := range localdef.Services {
+		for midx := range localdef.Services[sidx].Methods {
+			for field, _type := range localdef.Services[sidx].Methods[midx].Params {
+				localdef.Services[sidx].Methods[midx].Params[field] = _typeMap[_type]
 			}
-			for field, _type := range def.Services[sidx].Methods[midx].Result {
-				def.Services[sidx].Methods[midx].Result[field] = _typeMap[_type]
+			for field, _type := range localdef.Services[sidx].Methods[midx].Result {
+				localdef.Services[sidx].Methods[midx].Result[field] = _typeMap[_type]
 			}
 		}
 	}
 
-	err = tmpl.ExecuteTemplate(w, "rpc.go.template", def)
+	err = tmpl.ExecuteTemplate(w, "rpc.go.template", localdef)
 	if err != nil {
 		return err
 	}
@@ -134,18 +167,21 @@ func GenerateNode(w io.Writer, dir string, def *Definition) error {
 		return err
 	}
 
-	for sidx := range def.Services {
-		for midx := range def.Services[sidx].Methods {
-			for field, _type := range def.Services[sidx].Methods[midx].Params {
-				def.Services[sidx].Methods[midx].Params[field] = _typeMap[_type]
+	var localdef Definition
+	copyDefinition(&localdef, def)
+
+	for sidx := range localdef.Services {
+		for midx := range localdef.Services[sidx].Methods {
+			for field, _type := range localdef.Services[sidx].Methods[midx].Params {
+				localdef.Services[sidx].Methods[midx].Params[field] = _typeMap[_type]
 			}
-			for field, _type := range def.Services[sidx].Methods[midx].Result {
-				def.Services[sidx].Methods[midx].Result[field] = _typeMap[_type]
+			for field, _type := range localdef.Services[sidx].Methods[midx].Result {
+				localdef.Services[sidx].Methods[midx].Result[field] = _typeMap[_type]
 			}
 		}
 	}
 
-	err = tmpl.ExecuteTemplate(w, "rpc.node.template", def)
+	err = tmpl.ExecuteTemplate(w, "rpc.node.template", localdef)
 	if err != nil {
 		return err
 	}

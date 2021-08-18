@@ -1,18 +1,31 @@
 ﻿using System;
 using System.IO;
 using System.Net;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace example
 {
-    class arith : Rpc.IArith
+    class arith : JsonRpc.IArith
     {
-
-    }
-    class greeter : Rpc.IGreeter
-    {
-        public Rpc.GreeterSayHelloResult SayHello(Rpc.GreeterSayHelloParams greeterSayHelloParams)
+        public JsonRpc.ArithAddResult Add(JsonRpc.ArithAddParams arithAddParams)
         {
-            Rpc.GreeterSayHelloResult result = new("Just saying hello!");
+            return new JsonRpc.ArithAddResult(1.0);
+        }
+        public JsonRpc.ArithPowResult Pow(JsonRpc.ArithPowParams arithPowParams)
+        {
+            return new JsonRpc.ArithPowResult(1.0);
+        }
+        public JsonRpc.ArithIsNegativeResult IsNegative(JsonRpc.ArithIsNegativeParams arithIsNegativeParams)
+        {
+            return new JsonRpc.ArithIsNegativeResult(false);
+        }
+    }
+    class greeter : JsonRpc.IGreeter
+    {
+        public JsonRpc.GreeterSayHelloResult SayHello(JsonRpc.GreeterSayHelloParams greeterSayHelloParams)
+        {
+            JsonRpc.GreeterSayHelloResult result = new("Dear " + greeterSayHelloParams.To + "\nJust saying hello!\n"+greeterSayHelloParams.From);
             
             return result;
         }
@@ -22,7 +35,7 @@ namespace example
     {
         static void Main(string[] args)
         {
-            Rpc.Server server = new Rpc.Server();
+            JsonRpc.Server server = new JsonRpc.Server();
             server.Greeter = new greeter();
             server.Arith = new arith();
 
@@ -38,54 +51,9 @@ namespace example
                 }
                 catch (Exception ex)
                 {
-    
+                    Console.WriteLine(ex.ToString());
                 }
             }
         }
-    }
-}
-
-namespace Rpc
-{
-    public class Server
-    {
-        public IArith Arith;
-        public IGreeter Greeter;
-        public void Process(HttpListenerContext context)
-        {
-            Console.WriteLine(context.Request.RawUrl);
-
-            context.Response.StatusCode = (int)HttpStatusCode.OK;
-
-            StreamWriter writer = new StreamWriter(context.Response.OutputStream);
-            writer.WriteLine("OK");
-            writer.Close();
-
-            context.Response.OutputStream.Close();
-        }
-    }
-
-    public record ArithAddParams(double[] Nums);
-    public record ArithAddResult(double Sum);
-
-    public record ArithPowParams(double Base, double Pow);
-    public record ArithPowResult(double Num);
-
-    public record ArithIsNegativeParams(double Num);
-    public record ArithIsNegativeResult(bool Negative);
-
-    public interface IArith
-    {
-        ArithAddResult Add(ArithAddParams arithAddParams);
-        ArithPowResult Pow(ArithPowParams arithPowParams);
-        ArithIsNegativeResult IsNegative(ArithIsNegativeParams arithIsNegativeParams);
-    }
-
-    public record GreeterSayHelloParams(string From, string To);
-    public record GreeterSayHelloResult(string Message);
-
-    public interface IGreeter
-    {
-        GreeterSayHelloResult SayHello(GreeterSayHelloParams greeterSayHelloParams);
     }
 }

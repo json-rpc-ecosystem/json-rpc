@@ -1,12 +1,14 @@
 using System;
 using System.IO;
 using System.Net;
+using System.Net.Http;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace JsonRpc
 {  
-    public class Request
+    internal class Request
     {
         [JsonPropertyName("jsonrpc")]
         public string JsonRpc { get; set; }
@@ -21,7 +23,7 @@ namespace JsonRpc
         public int Id { get; set; }
     } 
 
-    public class Response
+    internal class Response
     {
         [JsonPropertyName("jsonrpc")]
         public string JsonRpc { get; set; }
@@ -38,7 +40,7 @@ namespace JsonRpc
         public int Id { get; set; }
     }
 
-    public class Error
+    internal class Error
     {
         [JsonPropertyName("code")]
         public int Code { get; set; }
@@ -50,6 +52,30 @@ namespace JsonRpc
         public object Data { get; set; }
     }
 
+    public record ArithAddParams(double[] Nums);
+    public record ArithAddResult(double Sum);
+
+    public record ArithPowParams(double Base, double Pow);
+    public record ArithPowResult(double Num);
+
+    public record ArithIsNegativeParams(double Num);
+    public record ArithIsNegativeResult(bool Negative);
+
+    public interface IArith
+    {
+        ArithAddResult Add(ArithAddParams arithAddParams);
+        ArithPowResult Pow(ArithPowParams arithPowParams);
+        ArithIsNegativeResult IsNegative(ArithIsNegativeParams arithIsNegativeParams);
+    }
+
+    public record GreeterSayHelloParams(string From, string To);
+    public record GreeterSayHelloResult(string Message);
+
+    public interface IGreeter
+    {
+        GreeterSayHelloResult SayHello(GreeterSayHelloParams greeterSayHelloParams);
+    }
+    
     public class Server
     {
         public const int ErrorParsing = -32700;
@@ -61,7 +87,7 @@ namespace JsonRpc
         public IArith Arith;
         public IGreeter Greeter;
         
-        public void Process(HttpListenerContext context)
+        public void HandleHttpListenerContext(HttpListenerContext context)
         {
             StreamReader reader = new StreamReader(context.Request.InputStream);
             Request request = JsonSerializer.Deserialize<Request>(reader.ReadToEnd());
@@ -118,38 +144,82 @@ namespace JsonRpc
 
     public class Client
     {
-        private string endpoint;
-
         public IArith Arith;
         public IGreeter Greeter;
 
-        public Client(string endpoint)
+        public Client(HttpClient httpClient, string endpoint)
+        {
+            this.Arith = new ArithClient(endpoint+"/arith");
+            this.Greeter = new GreeterClient(endpoint+"/greeter");
+        }
+
+        internal static R DoRequest<P, R>(string endpoint, string method,  P reqParams)
+        {
+            Request rpcRequest = new Request
+            {
+                JsonRpc = "2.0",
+                Method = method,
+                Id = 1,
+            };
+
+            string json = JsonSerializer.Serialize<P>(reqParams);
+            byte[] byteArray = Encoding.UTF8.GetBytes(json);
+
+            WebRequest request = WebRequest.Create(endpoint);
+            request.Method = "POST";
+            request.ContentType = "application/json";
+            request.ContentLength = byteArray.Length;
+
+            Stream reqStream = request.GetRequestStream();
+            reqStream.Write(byteArray, 0, byteArray.Length);
+
+            WebResponse response = request.GetResponse();
+            Stream respStream = response.GetResponseStream();
+            
+            StreamReader reader = new StreamReader(respStream);
+            Response rpcResponse = JsonSerializer.Deserialize<Response>(reader.ReadToEnd());
+
+            return (R)rpcResponse.Result;
+        }
+    }
+
+    internal class ArithClient : IArith
+    {
+        private string endpoint;
+
+        public ArithClient(string endpoint)
         {
             this.endpoint = endpoint;
         }
-    }
-    
-    public record ArithAddParams(double[] Nums);
-    public record ArithAddResult(double Sum);
 
-    public record ArithPowParams(double Base, double Pow);
-    public record ArithPowResult(double Num);
-
-    public record ArithIsNegativeParams(double Num);
-    public record ArithIsNegativeResult(bool Negative);
-
-    public interface IArith
-    {
-        ArithAddResult Add(ArithAddParams arithAddParams);
-        ArithPowResult Pow(ArithPowParams arithPowParams);
-        ArithIsNegativeResult IsNegative(ArithIsNegativeParams arithIsNegativeParams);
+        public ArithAddResult Add(ArithAddParams arithAddParams)
+        {
+            return Client.DoRequest<ArithAddParams, ArithAddResult>(this.endpoint, "Add", arithAddParams);
+        }
+        public ArithPowResult Pow(ArithPowParams arithPowParams)
+        {
+            return Client.DoRequest<ArithPowParams, ArithPowResult>(this.endpoint, "Pow", arithPowParams);
+        }
+        public ArithIsNegativeResult IsNegative(ArithIsNegativeParams arithIsNegativeParams)
+        {
+            return Client.DoRequest<ArithIsNegativeParams, ArithIsNegativeResult>(this.endpoint, "IsNegative", arithIsNegativeParams);;
+        }
     }
 
-    public record GreeterSayHelloParams(string From, string To);
-    public record GreeterSayHelloResult(string Message);
-
-    public interface IGreeter
+    internal class GreeterClient : IGreeter
     {
-        GreeterSayHelloResult SayHello(GreeterSayHelloParams greeterSayHelloParams);
+        private string endpoint;
+
+        public GreeterClient(string endpoint)
+        {
+            this.endpoint = endpoint;
+        }
+
+        public GreeterSayHelloResult SayHello(GreeterSayHelloParams greeterSayHelloParams)
+        {
+            GreeterSayHelloResult result = new("Dear " + greeterSayHelloParams.To + "\nJust saying hello!\n"+greeterSayHelloParams.From);
+            
+            return result;
+        }
     }
 }

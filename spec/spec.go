@@ -113,6 +113,44 @@ func GenerateBrowser(w io.Writer, dir string, def *Definition) error {
 	return nil
 }
 
+func GenerateCSharp(w io.Writer, dir string, def *Definition) error {
+	_typeMap := map[string]string{
+		"String":  "string",
+		"Number":  "double",
+		"Boolean": "bool",
+
+		"[]String":  "string[]",
+		"[]Number":  "double[]",
+		"[]Boolean": "bool[]",
+	}
+
+	tmpl, err := template.ParseFiles(dir + "/rpc.csharp.template")
+	if err != nil {
+		return err
+	}
+
+	var localdef Definition
+	copyDefinition(&localdef, def)
+
+	for sidx := range localdef.Services {
+		for midx := range localdef.Services[sidx].Methods {
+			for field, _type := range localdef.Services[sidx].Methods[midx].Params {
+				localdef.Services[sidx].Methods[midx].Params[field] = _typeMap[_type]
+			}
+			for field, _type := range localdef.Services[sidx].Methods[midx].Result {
+				localdef.Services[sidx].Methods[midx].Result[field] = _typeMap[_type]
+			}
+		}
+	}
+
+	err = tmpl.ExecuteTemplate(w, "rpc.csharp.template", localdef)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func GenerateGo(w io.Writer, dir string, def *Definition) error {
 	_typeMap := map[string]string{
 		"String":  "string",

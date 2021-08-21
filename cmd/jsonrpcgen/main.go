@@ -12,6 +12,7 @@ import (
 func main() {
 	specFile := flag.String("spec-file", "", "JSON-RPC spec file")
 	browserOutDir := flag.String("browser-out-dir", "", "directory of the generate browser source")
+	csharpOutDir := flag.String("csharp-out-dir", "", "directory of the generate C# source")
 	goOutDir := flag.String("go-out-dir", "", "directory of the generate Go source")
 	nodeOutDir := flag.String("node-out-dir", "", "directory of the generate Node source")
 	flag.Parse()
@@ -38,6 +39,21 @@ func main() {
 		}
 
 		log.Println("Generated: ", *browserOutDir+baseSpecFile+".browser.js")
+	}
+
+	if *csharpOutDir != "" {
+		f, err := os.Create(*csharpOutDir + baseSpecFile + ".csharp.cs")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer f.Close()
+
+		err = spec.GenerateCSharp(f, "./templates", &def)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.Println("Generated: ", *csharpOutDir+baseSpecFile+".csharp.cs")
 	}
 
 	if *goOutDir != "" {

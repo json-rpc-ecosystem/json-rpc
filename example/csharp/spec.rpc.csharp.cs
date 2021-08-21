@@ -17,7 +17,7 @@ namespace JsonRpc
         public string Method { get; set; }
 
         [JsonPropertyName("params")]
-        public JsonDocument Params { get; set; }
+        public object Params { get; set; }
 
         [JsonPropertyName("id")]
         public int Id { get; set; }
@@ -52,29 +52,91 @@ namespace JsonRpc
         public object Data { get; set; }
     }
 
-    public record ArithAddParams(double[] Nums);
-    public record ArithAddResult(double Sum);
+    
+    
+    
+    public record ArithAddParams
+    {
+        
+        public double[] Nums { get; set; }
+        
+    }
 
-    public record ArithPowParams(double Base, double Pow);
-    public record ArithPowResult(double Num);
+    public record ArithAddResult
+    {
+        
+        public double Sum { get; set; }
+        
+    }
+    
+    public record ArithPowParams
+    {
+        
+        public double Base { get; set; }
+        
+        public double Pow { get; set; }
+        
+    }
 
-    public record ArithIsNegativeParams(double Num);
-    public record ArithIsNegativeResult(bool Negative);
+    public record ArithPowResult
+    {
+        
+        public double Num { get; set; }
+        
+    }
+    
+    public record ArithIsNegativeParams
+    {
+        
+        public double Num { get; set; }
+        
+    }
 
+    public record ArithIsNegativeResult
+    {
+        
+        public bool Negative { get; set; }
+        
+    }
+    
+    
     public interface IArith
     {
+        
         ArithAddResult Add(ArithAddParams arithAddParams);
+        
         ArithPowResult Pow(ArithPowParams arithPowParams);
+        
         ArithIsNegativeResult IsNegative(ArithIsNegativeParams arithIsNegativeParams);
+        
+    }
+    
+    
+    
+    public record GreeterSayHelloParams
+    {
+        
+        public string From { get; set; }
+        
+        public string To { get; set; }
+        
     }
 
-    public record GreeterSayHelloParams(string From, string To);
-    public record GreeterSayHelloResult(string Message);
-
+    public record GreeterSayHelloResult
+    {
+        
+        public string Message { get; set; }
+        
+    }
+    
+    
     public interface IGreeter
     {
-        GreeterSayHelloResult SayHello(GreeterSayHelloParams greeterSayHelloParams);
+        
+        GreeterSayHelloResult SayHello(GreeterSayHelloParams arithSayHelloParams);
+        
     }
+    
     
     public class Server
     {
@@ -84,8 +146,11 @@ namespace JsonRpc
         public const int ErrorInvalidParams = -32602;
         public const int ErrorInternal = -32603;
 
+        
         public IArith Arith;
+        
         public IGreeter Greeter;
+        
         
         public void HandleHttpListenerContext(HttpListenerContext context)
         {
@@ -93,37 +158,48 @@ namespace JsonRpc
             Request request = JsonSerializer.Deserialize<Request>(reader.ReadToEnd());
             reader.Close();
 
-            string rpcparams = request.Params.RootElement.GetRawText();
+            string rpcparams = ((JsonElement)request.Params).GetRawText();
             object rpcresult = null;
 
             switch (context.Request.RawUrl)
             {
+                
+                
                 case "/arith":
                     switch (request.Method)
                     {
+                        
                         case "Add":
                             rpcresult = this.Arith.Add(JsonSerializer.Deserialize<ArithAddParams>(rpcparams));
                             break;
+                        
                         case "Pow":
                             rpcresult = this.Arith.Pow(JsonSerializer.Deserialize<ArithPowParams>(rpcparams));
                             break;
+                        
                         case "IsNegative":
                             rpcresult = this.Arith.IsNegative(JsonSerializer.Deserialize<ArithIsNegativeParams>(rpcparams));
                             break;
+                        
                         default:
                             break;
                     }
                     break;
+                
+                
                 case "/greeter":
                     switch (request.Method)
                     {
+                        
                         case "SayHello":
                             rpcresult = this.Greeter.SayHello(JsonSerializer.Deserialize<GreeterSayHelloParams>(rpcparams));
                             break;
+                        
                         default:
                             break;
                     }
                     break;
+                
                 default:
                     break;
             }
@@ -144,13 +220,19 @@ namespace JsonRpc
 
     public class Client
     {
+        
         public IArith Arith;
+        
         public IGreeter Greeter;
+        
 
         public Client(HttpClient httpClient, string endpoint)
         {
+            
             this.Arith = new ArithClient(endpoint+"/arith");
+            
             this.Greeter = new GreeterClient(endpoint+"/greeter");
+            
         }
 
         internal static R DoRequest<P, R>(string endpoint, string method,  P reqParams)
@@ -159,10 +241,11 @@ namespace JsonRpc
             {
                 JsonRpc = "2.0",
                 Method = method,
+                Params = reqParams,
                 Id = 1,
             };
 
-            string json = JsonSerializer.Serialize<P>(reqParams);
+            string json = JsonSerializer.Serialize<Request>(rpcRequest);
             byte[] byteArray = Encoding.UTF8.GetBytes(json);
 
             WebRequest request = WebRequest.Create(endpoint);
@@ -179,10 +262,14 @@ namespace JsonRpc
             StreamReader reader = new StreamReader(respStream);
             Response rpcResponse = JsonSerializer.Deserialize<Response>(reader.ReadToEnd());
 
-            return (R)rpcResponse.Result;
+            string result = ((JsonElement)rpcResponse.Result).GetRawText();
+
+            return JsonSerializer.Deserialize<R>(result);
         }
     }
 
+    
+    
     internal class ArithClient : IArith
     {
         private string endpoint;
@@ -192,20 +279,25 @@ namespace JsonRpc
             this.endpoint = endpoint;
         }
 
-        public ArithAddResult Add(ArithAddParams arithAddParams)
+        
+        public ArithAddResult Add(ArithAddParams reqParams)
         {
-            return Client.DoRequest<ArithAddParams, ArithAddResult>(this.endpoint, "Add", arithAddParams);
+            return Client.DoRequest<ArithAddParams, ArithAddResult>(this.endpoint, "Add", reqParams);
         }
-        public ArithPowResult Pow(ArithPowParams arithPowParams)
+        
+        public ArithPowResult Pow(ArithPowParams reqParams)
         {
-            return Client.DoRequest<ArithPowParams, ArithPowResult>(this.endpoint, "Pow", arithPowParams);
+            return Client.DoRequest<ArithPowParams, ArithPowResult>(this.endpoint, "Pow", reqParams);
         }
-        public ArithIsNegativeResult IsNegative(ArithIsNegativeParams arithIsNegativeParams)
+        
+        public ArithIsNegativeResult IsNegative(ArithIsNegativeParams reqParams)
         {
-            return Client.DoRequest<ArithIsNegativeParams, ArithIsNegativeResult>(this.endpoint, "IsNegative", arithIsNegativeParams);;
+            return Client.DoRequest<ArithIsNegativeParams, ArithIsNegativeResult>(this.endpoint, "IsNegative", reqParams);
         }
+        
     }
-
+    
+    
     internal class GreeterClient : IGreeter
     {
         private string endpoint;
@@ -215,11 +307,12 @@ namespace JsonRpc
             this.endpoint = endpoint;
         }
 
-        public GreeterSayHelloResult SayHello(GreeterSayHelloParams greeterSayHelloParams)
+        
+        public GreeterSayHelloResult SayHello(GreeterSayHelloParams reqParams)
         {
-            GreeterSayHelloResult result = new("Dear " + greeterSayHelloParams.To + "\nJust saying hello!\n"+greeterSayHelloParams.From);
-            
-            return result;
+            return Client.DoRequest<GreeterSayHelloParams, GreeterSayHelloResult>(this.endpoint, "SayHello", reqParams);
         }
+        
     }
+    
 }

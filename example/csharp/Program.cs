@@ -9,29 +9,27 @@ namespace example
     {
         public JsonRpc.ArithAddResult Add(JsonRpc.ArithAddParams arithAddParams)
         {
-            return new JsonRpc.ArithAddResult(1.0);
+            return new JsonRpc.ArithAddResult{Sum = 1.0};
         }
         public JsonRpc.ArithPowResult Pow(JsonRpc.ArithPowParams arithPowParams)
         {
-            return new JsonRpc.ArithPowResult(Math.Pow(arithPowParams.Base, arithPowParams.Pow));
+            return new JsonRpc.ArithPowResult{Num = Math.Pow(arithPowParams.Base, arithPowParams.Pow)};
         }
         public JsonRpc.ArithIsNegativeResult IsNegative(JsonRpc.ArithIsNegativeParams arithIsNegativeParams)
         {
             if(arithIsNegativeParams.Num < 0)
             {
-                return new JsonRpc.ArithIsNegativeResult(true);
+                return new JsonRpc.ArithIsNegativeResult{Negative = true};
             }
             
-            return new JsonRpc.ArithIsNegativeResult(false);
+            return new JsonRpc.ArithIsNegativeResult{Negative = false};
         }
     }
     class greeter : JsonRpc.IGreeter
     {
         public JsonRpc.GreeterSayHelloResult SayHello(JsonRpc.GreeterSayHelloParams greeterSayHelloParams)
         {
-            JsonRpc.GreeterSayHelloResult result = new("Dear " + greeterSayHelloParams.To + "\nJust saying hello!\n"+greeterSayHelloParams.From);
-            
-            return result;
+            return new JsonRpc.GreeterSayHelloResult{Message = "Dear " + greeterSayHelloParams.To + "\nJust saying hello!\n"+greeterSayHelloParams.From};
         }
     }
 
@@ -62,7 +60,7 @@ namespace example
 
             // Create a client and call a method
             JsonRpc.Client client = new JsonRpc.Client(new HttpClient(), "http://localhost:8080");
-            JsonRpc.GreeterSayHelloResult result = client.Greeter.SayHello(new JsonRpc.GreeterSayHelloParams("Blain", "Austin"));
+            JsonRpc.GreeterSayHelloResult result = client.Greeter.SayHello(new JsonRpc.GreeterSayHelloParams{From = "Blain", To = "Austin"});
             Console.Write(result.Message);
         }
     }

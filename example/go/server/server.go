@@ -9,16 +9,6 @@ import (
 	"github.com/json-rpc-ecosystem/json-rpc/example/rpc"
 )
 
-func corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
-
-		next.ServeHTTP(w, r)
-	})
-}
-
 type arith struct{}
 
 func (s *arith) Add(params *rpc.ArithAddParams) (*rpc.ArithAddResult, error) {
@@ -49,7 +39,7 @@ func main() {
 		Greeter: &greeter{},
 	}
 
-	err := http.ListenAndServe(":8080", corsMiddleware(server.Mux()))
+	err := http.ListenAndServe(":8080", server.Mux())
 	if err != nil {
 		log.Fatal(err)
 	}

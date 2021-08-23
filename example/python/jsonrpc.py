@@ -1,11 +1,17 @@
 import abc
 import json
+import requests
 
 from http.server import BaseHTTPRequestHandler
 from io import BytesIO
 
 class ArithAddParams:
     Nums = []
+
+    def to_dict(self):
+        return {
+            "Nums": self.Nums,
+        }
 
 class ArithAddResult:
     Sum = 0
@@ -28,6 +34,12 @@ class Arith(metaclass=abc.ABCMeta):
 class GreeterSayHelloParams:
     From = ""
     To = ""
+
+    def to_dict(self):
+        return {
+            "From": self.From,
+            "To": self.To,
+        }
 
 class GreeterSayHelloResult:
     Message = ""
@@ -96,3 +108,31 @@ class Server:
                 handler.wfile.write(bytes(json.dumps(rpc_response), 'utf-8'))
 
         return HTTPRequestHandler
+
+class greeterClient(Greeter):
+    endpoint = ""
+
+    def __init__(self, endpoint: ""):
+        self.endpoint = endpoint
+        return
+
+    def SayHello(self, params: GreeterSayHelloParams):
+        rpc_request = {
+            "jsonrpc": "2.0",
+            "method": "SayHello",
+            "params": params.to_dict()
+        }
+
+        response = requests.post(self.endpoint, json=rpc_request).json()
+        result = GreeterSayHelloResult()
+        result.Message = response["result"]
+        
+        return result
+
+class Client:
+    Arith = None
+    Greeter = None
+
+    def __init__(self, endpoint: ""):
+        self.Greeter = greeterClient(endpoint + "/greeter")
+        return

@@ -4,17 +4,16 @@ import (
 	"flag"
 	"log"
 	"os"
-	"path"
 
 	"github.com/json-rpc-ecosystem/json-rpc/spec"
 )
 
 func main() {
 	specFile := flag.String("spec-file", "", "JSON-RPC spec file")
-	browserOutDir := flag.String("browser-out-dir", "", "directory of the generate browser source")
-	csharpOutDir := flag.String("csharp-out-dir", "", "directory of the generate C# source")
-	goOutDir := flag.String("go-out-dir", "", "directory of the generate Go source")
-	nodeOutDir := flag.String("node-out-dir", "", "directory of the generate Node source")
+	browserOutFile := flag.String("browser-out-file", "", "file of the generate browser source")
+	csharpOutFile := flag.String("csharp-out-file", "", "file of the generate C# source")
+	goOutFile := flag.String("go-out-file", "", "file of the generate Go source")
+	nodeOutFile := flag.String("node-out-file", "", "file of the generate Node source")
 	flag.Parse()
 
 	var def spec.Definition
@@ -24,10 +23,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	baseSpecFile := "/" + path.Base(*specFile)
-
-	if *browserOutDir != "" {
-		f, err := os.Create(*browserOutDir + baseSpecFile + ".browser.js")
+	if *browserOutFile != "" {
+		f, err := os.Create(*browserOutFile)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -38,11 +35,11 @@ func main() {
 			log.Fatal(err)
 		}
 
-		log.Println("Generated: ", *browserOutDir+baseSpecFile+".browser.js")
+		log.Println("Generated: ", *browserOutFile)
 	}
 
-	if *csharpOutDir != "" {
-		f, err := os.Create(*csharpOutDir + baseSpecFile + ".csharp.cs")
+	if *csharpOutFile != "" {
+		f, err := os.Create(*csharpOutFile)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -53,11 +50,11 @@ func main() {
 			log.Fatal(err)
 		}
 
-		log.Println("Generated: ", *csharpOutDir+baseSpecFile+".csharp.cs")
+		log.Println("Generated: ", *csharpOutFile)
 	}
 
-	if *goOutDir != "" {
-		f, err := os.Create(*goOutDir + baseSpecFile + ".go")
+	if *goOutFile != "" {
+		f, err := os.Create(*goOutFile)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -68,11 +65,11 @@ func main() {
 			log.Fatal(err)
 		}
 
-		log.Println("Generated: ", *goOutDir+baseSpecFile+".go")
+		log.Println("Generated: ", *goOutFile)
 	}
 
-	if *nodeOutDir != "" {
-		f, err := os.Create(*nodeOutDir + baseSpecFile + ".node.js")
+	if *nodeOutFile != "" {
+		f, err := os.Create(*nodeOutFile)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -83,6 +80,7 @@ func main() {
 			log.Fatal(err)
 		}
 
-		log.Println("Generated: ", *nodeOutDir+baseSpecFile+".node.js")
+		log.Println("Generated: ", *nodeOutFile)
+	}
 	}
 }

@@ -15,6 +15,16 @@ class arith(jsonrpc.Arith):
 
         return result
 
+    def Pow(self, params: jsonrpc.ArithPowParams):
+        result = jsonrpc.ArithPowResult()
+
+        return result
+
+    def IsNegative(self, params: jsonrpc.ArithIsNegativeParams):
+        result = jsonrpc.ArithIsNegativeResult()
+
+        return result
+
 class greeter(jsonrpc.Greeter):
     def SayHello(self, params: jsonrpc.GreeterSayHelloParams):
         result = jsonrpc.GreeterSayHelloResult()

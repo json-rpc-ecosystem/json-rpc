@@ -1,0 +1,134 @@
+import abc
+import json
+import requests
+
+from http.server import BaseHTTPRequestHandler
+from io import BytesIO
+
+{{range .Services}}
+{{$service := .Name}}
+{{range .Methods}}
+class {{$service}}{{.Name}}Params:
+    {{range $field, $type := .Params}}
+    {{$field}} = {{$type}}
+    {{end}}
+
+    def to_dict(self):
+        return {
+            {{range $field, $type := .Params}}
+            "{{$field}}": self.{{$field}},
+            {{end}}
+        }
+
+class {{$service}}{{.Name}}Result:
+    {{range $field, $type := .Result}}
+    {{$field}} = {{$type}}
+    {{end}}
+
+    def to_dict(self):
+        return {
+            {{range $field, $type := .Result}}
+            "{{$field}}": self.{{$field}},
+            {{end}}
+        }
+{{end}}
+
+class {{$service}}(metaclass=abc.ABCMeta):
+    @classmethod
+    def __subclasshook__(cls, subclass):
+        return (
+            {{range .Methods}}
+            hasattr(subclass, '{{.Name}}') and callable(subclass.{{.Name}}) or
+            {{end}}
+            NotImplemented
+        )
+
+    {{range .Methods}}
+    @abc.abstractmethod
+    def {{.Name}}(self, params: {{$service}}{{.Name}}Params):
+        raise NotImplementedError
+    {{end}}
+{{end}}
+
+class Server:
+    {{range .Services}}
+    {{.Name}} = None
+    {{end}}
+
+    def HTTPRequestHandler(server):
+        class HTTPRequestHandler(BaseHTTPRequestHandler):
+
+            def do_POST(handler):
+                content_length = int(handler.headers['Content-Length'])
+                body = handler.rfile.read(content_length)
+                rpc_request = json.loads(body)
+
+                result = None
+                if handler.path == "/":
+                    return
+                {{range .Services}}
+                {{$service := .Name}}
+                elif handler.path == "{{.Endpoint}}":
+                    if rpc_request["method"] == "":
+                        return
+                    {{range .Methods}}
+                    elif rpc_request["method"] == "{{.Name}}":
+                        params = {{$service}}{{.Name}}Params()
+                        {{range $field, $type := .Params}}
+                        params.{{$field}} = rpc_request["params"]["{{$field}}"]
+                        {{end}}
+
+                        result = server.{{$service}}.{{.Name}}(params)
+                    {{end}}
+                    else:
+                        return
+                {{end}}
+                else:
+                    return
+
+                rpc_response = {
+                    "jsonrpc": "2.0",
+                    "result": result.to_dict()
+                }
+
+                handler.send_response(200)
+                handler.end_headers()
+                handler.wfile.write(bytes(json.dumps(rpc_response), 'utf-8'))
+
+        return HTTPRequestHandler
+
+{{range .Services}}
+{{$service := .Name}}
+class {{$service}}Client({{$service}}):
+    endpoint = ""
+
+    def __init__(self, endpoint: ""):
+        self.endpoint = endpoint
+        return
+
+    {{range .Methods}}
+    def {{.Name}}(self, params: {{$service}}{{.Name}}Params):
+        rpc_request = {
+            "jsonrpc": "2.0",
+            "method": "{{.Name}}",
+            "params": params.to_dict()
+        }
+
+        response = requests.post(self.endpoint, json=rpc_request).json()
+        result = {{$service}}{{.Name}}Result()
+        result.Message = response["result"]
+        
+        return result
+    {{end}}
+{{end}}
+
+class Client:
+    {{range .Services}}
+    {{.Name}} = None
+    {{end}}
+
+    def __init__(self, endpoint: ""):
+        {{range .Services}}
+        self.{{.Name}} = {{.Name}}Client(endpoint + "{{.Endpoint}}")
+        {{end}}
+        return

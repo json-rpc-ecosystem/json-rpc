@@ -226,3 +226,41 @@ func GenerateNode(w io.Writer, dir string, def *Definition) error {
 
 	return nil
 }
+
+func GeneratePython(w io.Writer, dir string, def *Definition) error {
+	_typeMap := map[string]string{
+		"String":  `""`,
+		"Number":  "0",
+		"Boolean": "False",
+
+		"[]String":  "[]",
+		"[]Number":  "[]",
+		"[]Boolean": "[]",
+	}
+
+	tmpl, err := template.ParseFiles(dir + "/rpc.python.template")
+	if err != nil {
+		return err
+	}
+
+	var localdef Definition
+	copyDefinition(&localdef, def)
+
+	for sidx := range localdef.Services {
+		for midx := range localdef.Services[sidx].Methods {
+			for field, _type := range localdef.Services[sidx].Methods[midx].Params {
+				localdef.Services[sidx].Methods[midx].Params[field] = _typeMap[_type]
+			}
+			for field, _type := range localdef.Services[sidx].Methods[midx].Result {
+				localdef.Services[sidx].Methods[midx].Result[field] = _typeMap[_type]
+			}
+		}
+	}
+
+	err = tmpl.ExecuteTemplate(w, "rpc.python.template", localdef)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

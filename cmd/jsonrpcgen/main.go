@@ -14,6 +14,7 @@ func main() {
 	csharpOutFile := flag.String("csharp-out-file", "", "file of the generate C# source")
 	goOutFile := flag.String("go-out-file", "", "file of the generate Go source")
 	nodeOutFile := flag.String("node-out-file", "", "file of the generate Node source")
+	pythonOutFile := flag.String("python-out-file", "", "file of the generate Python source")
 	flag.Parse()
 
 	var def spec.Definition
@@ -82,5 +83,19 @@ func main() {
 
 		log.Println("Generated: ", *nodeOutFile)
 	}
+
+	if *pythonOutFile != "" {
+		f, err := os.Create(*pythonOutFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer f.Close()
+
+		err = spec.GeneratePython(f, "./templates", &def)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.Println("Generated: ", *pythonOutFile)
 	}
 }

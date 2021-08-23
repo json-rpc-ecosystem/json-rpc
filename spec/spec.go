@@ -11,8 +11,19 @@ import (
 )
 
 type Definition struct {
-	Version  string    `hcl:"version"`
-	Services []Service `hcl:"service,block"`
+	Version   string    `hcl:"version"`
+	Namespace Namespace `hcl:"namespace,block"`
+	Services  []Service `hcl:"service,block"`
+}
+
+type Namespace struct {
+	Go     string `hcl:"go"`
+	Java   string `hcl:"java"`
+	Kotlin string `hcl:"kotlin"`
+	Rust   string `hcl:"rust"`
+	CPP    string `hcl:"cpp"`
+	CSharp string `hcl:"csharp"`
+	C      string `hcl:"c"`
 }
 
 type Service struct {
@@ -31,6 +42,7 @@ type Method struct {
 
 func copyDefinition(dst *Definition, src *Definition) {
 	dst.Version = src.Version
+	dst.Namespace = src.Namespace
 	dst.Services = make([]Service, len(src.Services))
 
 	for sidx := range src.Services {

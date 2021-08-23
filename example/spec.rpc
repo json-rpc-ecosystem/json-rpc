@@ -1,5 +1,15 @@
 version = "2.0"
 
+namespace {
+    go = "jsonrpc"
+    java = "io.json-rpc"
+    kotlin = "io.json-rpc"
+    rust = "jsonrpc"
+    cpp = "JsonRpc"
+    csharp = "JsonRpc"
+    c = "jsonrpc"
+}
+
 service "Arith" {
     description = "exposes basic arithmatic functions"
 
